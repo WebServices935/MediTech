@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="description"
+    content="Meditech – Fast emergency hospital finder for Bidar. Find nearest hospitals and call emergency services instantly." />
+  <title>MediTech – Emergency Healthcare</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#0ea5e9', dark: '#0369a1', light: '#bae6fd' },
+            accent: { DEFAULT: '#10b981', dark: '#047857', light: '#a7f3d0' },
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          animation: { 'ping-slow': 'ping 2.2s cubic-bezier(0,0,0.2,1) infinite' },
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<!-- LIGHT BODY: soft blue-white background -->
+
+<body class="font-sans antialiased select-none" style="background:#f0f9ff; color:#0f172a;">
+
+  <!-- ══════════════ SPLASH SCREEN ══════════════ -->
+  <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center"
+    style="background:linear-gradient(160deg,#0ea5e9 0%,#10b981 100%);">
+    <div class="relative flex items-center justify-center w-28 h-28 mb-6">
+      <div class="absolute w-28 h-28 rounded-full bg-white/20 animate-ping-slow"></div>
+      <div class="absolute w-20 h-20 rounded-full bg-white/10 animate-ping-slow" style="animation-delay:.6s"></div>
+      <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-xl text-3xl">🏥</div>
+    </div>
+    <h1 class="text-3xl font-black tracking-tight text-white">Medi<span class="text-green-200">Tech</span></h1>
+    <p class="mt-1 text-white/70 text-sm font-medium">Emergency Healthcare · Bidar</p>
+    <div class="mt-10 flex gap-2">
+      <div class="w-2 h-2 rounded-full bg-white animate-bounce" style="animation-delay:0s"></div>
+      <div class="w-2 h-2 rounded-full bg-green-200 animate-bounce" style="animation-delay:.15s"></div>
+      <div class="w-2 h-2 rounded-full bg-blue-200 animate-bounce" style="animation-delay:.3s"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ APP SHELL ══════════════ -->
+  <div id="appShell" class="hidden flex flex-col h-screen max-w-md mx-auto relative">
+
+    <!-- TOP HEADER -->
+    <header
+      class="flex-none bg-white border-b border-blue-100 px-4 py-3 flex items-center justify-between z-10 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg shadow-md text-xl"
+          style="background:linear-gradient(135deg,#0ea5e9,#10b981);">🏥</div>
+        <div>
+          <span class="font-black text-base text-slate-800 leading-none">Medi<span
+              class="text-primary">Tech</span></span>
+          <p class="text-xs text-slate-400 leading-none mt-0.5">Emergency Healthcare</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-full px-3 py-1.5">
+          <span class="text-xs">📍</span>
+          <span id="locationText" class="text-xs text-slate-500 font-medium max-w-[100px] truncate">Locating…</span>
+        </div>
+        <div id="firebaseDot" class="w-2.5 h-2.5 rounded-full bg-yellow-400 ring-2 ring-yellow-200" title="Connecting…">
+        </div>
+      </div>
+    </header>
+
+    <!-- TOAST -->
+    <div id="toast"
+      class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-accent text-white px-5 py-2 rounded-full text-sm font-semibold shadow-lg whitespace-nowrap">
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto pb-24">
+
+      <!-- ════ TAB 1: SEARCH ════ -->
+      <section id="tab-search" class="tab-page p-4 space-y-4">
+
+        <!-- Search Bar -->
+        <div class="relative">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-lg">🔍</span>
+          <input id="searchInput" type="text" placeholder="Search emergency, specialty…"
+            class="w-full bg-white border border-blue-200 rounded-2xl pl-12 pr-4 py-4 text-slate-800 placeholder-slate-400 text-base focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+        </div>
+
+        <!-- Quick Suggestions -->
+        <div>
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">Quick Suggestions</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="suggestion-chip" data-query="Heart Attack">❤️ Heart Attack</button>
+            <button class="suggestion-chip" data-query="Accident">🚗 Accident</button>
+            <button class="suggestion-chip" data-query="Fracture">🦴 Fracture</button>
+            <button class="suggestion-chip" data-query="Breathing Problem">😮‍💨 Breathing</button>
+            <button class="suggestion-chip" data-query="Cardiac">💉 Cardiac</button>
+            <button class="suggestion-chip" data-query="Trauma">🩸 Trauma</button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Results</p>
+          <span id="searchResultCount" class="text-xs text-primary font-semibold"></span>
+        </div>
+        <div id="searchResults" class="space-y-3"></div>
+      </section>
+
+      <!-- ════ TAB 2: EMERGENCY ════ -->
+      <section id="tab-emergency" class="tab-page hidden p-4 space-y-5">
+
+        <!-- Big Call Button -->
+        <div class="flex flex-col items-center py-4">
+          <div class="relative">
+            <div class="absolute -inset-5 rounded-full animate-ping-slow" style="background:rgba(16,185,129,0.15)">
+            </div>
+            <div class="absolute -inset-3 rounded-full animate-ping-slow"
+              style="background:rgba(14,165,233,0.10);animation-delay:.7s"></div>
+            <button onclick="window.location='tel:112'"
+              class="relative w-44 h-44 rounded-full flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform shadow-2xl"
+              style="background:linear-gradient(135deg,#0ea5e9,#10b981);">
+              <span class="text-5xl">🚨</span>
+              <span class="text-white font-black text-xl tracking-wide">CALL</span>
+              <span class="text-white/80 text-xs font-medium">India Emergency</span>
+            </button>
+          </div>
+          <p class="mt-6 text-slate-500 text-sm text-center">Tap to call <span class="text-slate-800 font-bold">Nearest Hospital
+          </span></p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div>
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">Quick Actions</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button class="emergency-action-btn" data-query="Heart Attack"><span class="text-3xl">❤️</span><span
+                class="font-bold text-sm text-slate-800">Heart Attack</span><span class="text-xs text-slate-400">Cardiac
+                Hospitals</span></button>
+            <button class="emergency-action-btn" data-query="Accident"><span class="text-3xl">🚗</span><span
+                class="font-bold text-sm text-slate-800">Accident</span><span class="text-xs text-slate-400">Trauma
+                Hospitals</span></button>
+            <button class="emergency-action-btn" data-query="Breathing Problem"><span class="text-3xl">😮‍💨</span><span
+                class="font-bold text-sm text-slate-800">Breathing</span><span
+                class="text-xs text-slate-400">Pulmonology</span></button>
+            <button class="emergency-action-btn" data-query="Fracture"><span class="text-3xl">🦴</span><span
+                class="font-bold text-sm text-slate-800">Fracture</span><span class="text-xs text-slate-400">Orthopedic
+                Care</span></button>
+          </div>
+        </div>
+
+        <!-- Best Nearby -->
+        <div>
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">⭐ Best Hospital Nearby</p>
+          <div id="bestHospitalCard" class="space-y-3"></div>
+        </div>
+
+        <!-- Emergency Filtered Results -->
+        <div id="emergencyResultsSection" class="hidden">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest" id="emergencyResultLabel">Results</p>
+            <button onclick="clearEmergencyFilter()" class="text-xs text-primary font-semibold">✕ Clear</button>
+          </div>
+          <div id="emergencyResults" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- ════ TAB 3: NEARBY ════ -->
+      <section id="tab-nearby" class="tab-page hidden p-4 space-y-4">
+
+        <!-- Location Card -->
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+          <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-2xl flex-shrink-0">📍
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-bold text-slate-800 text-sm" id="nearbyLocationLabel">Detecting location…</p>
+            <p class="text-xs text-slate-400 mt-0.5 truncate" id="nearbyLocationSub">Using GPS to find hospitals</p>
+          </div>
+          <button onclick="refreshLocation()"
+            class="text-xs bg-blue-50 text-primary border border-blue-200 rounded-full px-3 py-1.5 font-bold active:scale-95 transition flex-shrink-0">
+            Refresh
+          </button>
+        </div>
+
+        <!-- Sort Chips -->
+        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button class="sort-chip active" data-sort="distance">📏 Distance</button>
+          <button class="sort-chip" data-sort="icu">🏥 ICU First</button>
+          <button class="sort-chip" data-sort="emergency">🚨 24×7</button>
+          <button class="sort-chip" data-sort="ambulance">🚑 Ambulance</button>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Nearby Hospitals</p>
+          <span id="nearbyCount" class="text-xs text-accent font-semibold"></span>
+        </div>
+        <div id="nearbyResults" class="space-y-3"></div>
+      </section>
+    </main>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav
+      class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-blue-100 flex z-20 safe-bottom shadow-lg">
+      <button class="nav-tab active" id="nav-search" data-tab="search">
+        <span class="nav-icon">🔍</span><span class="nav-label">Search</span>
+      </button>
+      <button class="nav-tab emergency-tab" id="nav-emergency" data-tab="emergency">
+        <span class="nav-icon">🚑</span><span class="nav-label">Emergency</span>
+      </button>
+      <button class="nav-tab" id="nav-nearby" data-tab="nearby">
+        <span class="nav-icon">⭐</span><span class="nav-label">Nearby</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ══════════════ HOSPITAL CARD TEMPLATE ══════════════ -->
+  <template id="hospitalCardTpl">
+    <div class="hospital-card bg-white border border-blue-100 rounded-2xl overflow-hidden">
+      <div class="p-4 pb-3">
+        <!-- Badges -->
+        <div class="flex flex-wrap gap-1.5 mb-2">
+          <span class="card-best-badge hidden text-white text-xs font-bold px-2.5 py-0.5 rounded-full"
+            style="background:#10b981">⭐ Best Match</span>
+          <span class="card-nearest-badge hidden text-white text-xs font-bold px-2.5 py-0.5 rounded-full"
+            style="background:#0ea5e9">📍 Nearest</span>
+        </div>
+        <!-- Name + Distance -->
+        <div class="flex items-start justify-between gap-2 mb-1">
+          <h3 class="card-name font-bold text-slate-800 text-[0.95rem] leading-snug flex-1"></h3>
+          <div class="flex flex-col items-end gap-1 flex-shrink-0">
+            <span
+              class="card-distance bg-blue-50 text-primary text-xs font-bold px-2.5 py-1 rounded-xl border border-blue-100"></span>
+            <span class="card-emergency-badge text-xs font-semibold px-2 py-0.5 rounded-full"></span>
+          </div>
+        </div>
+        <!-- Address -->
+        <p class="card-city text-xs text-slate-400 mb-2"></p>
+        <!-- Emergency Type Tags -->
+        <div class="card-tags flex flex-wrap gap-1.5 mb-2"></div>
+        <!-- Specialties (highlighted) -->
+        <p class="card-specialties text-xs text-slate-400 leading-relaxed"></p>
+        <!-- Doctors -->
+        <p class="card-doctors text-xs text-slate-400 mt-1 leading-relaxed"></p>
+      </div>
+      <!-- Divider -->
+      <div class="h-px bg-blue-50 mx-4"></div>
+      <!-- Action Buttons: Availability | Route | Call -->
+      <div class="p-3 grid grid-cols-3 gap-2">
+        <button
+          class="card-avail-btn action-btn bg-blue-50 border border-blue-200 text-primary hover:bg-blue-100 active:scale-95">
+          <span class="text-base">📋</span><span class="text-xs font-bold">Availability</span>
+        </button>
+        <button
+          class="card-route-btn action-btn bg-green-50 border border-green-200 text-accent hover:bg-green-100 active:scale-95">
+          <span class="text-base">🗺️</span><span class="text-xs font-bold">Route</span>
+        </button>
+        <button
+          class="card-call-btn action-btn bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 active:scale-95">
+          <span class="text-base">📞</span><span class="text-xs font-bold">Call</span>
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- ══════════════ AVAILABILITY MODAL ══════════════ -->
+  <div id="availabilityModal" class="hidden fixed inset-0 z-40 flex items-end justify-center"
+    style="background:rgba(15,23,42,0.5);">
+    <div id="availabilitySheet"
+      class="w-full max-w-md bg-white rounded-t-3xl border-t border-blue-100 px-5 pt-4 pb-10 shadow-2xl">
+      <div class="sheet-handle"></div>
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h2 id="sheetHospitalName" class="font-black text-slate-800 text-lg leading-snug"></h2>
+          <p id="sheetHospitalCity" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+        <button onclick="closeAvailability()"
+          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 active:scale-95 transition text-base font-bold">✕</button>
+      </div>
+      <!-- Live indicator -->
+      <div class="flex items-center gap-2 mb-5 bg-green-50 border border-green-100 rounded-xl px-3 py-2">
+        <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+        <span class="text-xs text-accent font-bold">LIVE AVAILABILITY</span>
+        <span id="sheetTimestamp" class="ml-auto text-xs text-slate-400"></span>
+      </div>
+      <div id="sheetContent" class="space-y-0"></div>
+    </div>
+  </div>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+
+</html>
