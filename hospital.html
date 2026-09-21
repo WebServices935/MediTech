@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="description" content="MediTech Hospital Dashboard – Manage doctors, equipment, alerts, and patient reports." />
+  <title>MediTech – Hospital Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#0ea5e9', dark: '#0369a1', light: '#bae6fd' },
+            accent:  { DEFAULT: '#10b981', dark: '#047857', light: '#a7f3d0' },
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          animation: { 'ping-slow': 'ping 2.2s cubic-bezier(0,0,0.2,1) infinite' },
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="hospital.css" />
+</head>
+
+<body class="font-sans antialiased select-none" style="background:#f0f9ff; color:#0f172a;">
+
+  <!-- ══════════════ AUTH SCREEN ══════════════ -->
+  <div id="authScreen" class="flex flex-col h-screen max-w-md mx-auto items-center justify-center p-6 space-y-6">
+    <div class="text-center space-y-2">
+      <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl shadow-xl"
+        style="background:linear-gradient(135deg,#0ea5e9,#10b981);">🏥</div>
+      <h1 class="text-2xl font-black text-slate-900 mt-4">Hospital Login</h1>
+      <p class="text-sm text-slate-500">Sign in to access your dashboard</p>
+    </div>
+    
+    <div class="w-full bg-white border border-blue-100 rounded-2xl p-5 shadow-lg space-y-4">
+      <div>
+        <label class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Email</label>
+        <input id="loginEmail" type="email" placeholder="admin@hospital.com"
+          class="w-full bg-slate-50 border border-blue-200 rounded-xl px-4 py-3 text-slate-800 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
+      </div>
+      <div>
+        <label class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Password</label>
+        <input id="loginPassword" type="password" placeholder="••••••••"
+          class="w-full bg-slate-50 border border-blue-200 rounded-xl px-4 py-3 text-slate-800 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition" />
+      </div>
+      <button id="loginButton"
+        class="w-full rounded-xl py-3 text-sm font-bold text-white active:scale-95 transition"
+        style="background:linear-gradient(135deg,#0ea5e9,#10b981);">Sign In</button>
+    </div>
+    <button onclick="window.location='index.html'" class="text-sm font-semibold text-primary hover:underline">← Back to Patient View</button>
+  </div>
+
+  <!-- ══════════════ APP SHELL (matches Patient layout) ══════════════ -->
+  <div id="dashboardShell" class="hidden flex flex-col h-screen max-w-md mx-auto relative">
+
+    <!-- TOP HEADER (identical structure to Patient) -->
+    <header class="flex-none bg-white border-b border-blue-100 px-4 py-3 flex items-center justify-between z-10 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg shadow-md text-xl"
+          style="background:linear-gradient(135deg,#0ea5e9,#10b981);">🏥</div>
+        <div>
+          <span class="font-black text-base text-slate-800 leading-none">Medi<span class="text-primary">Tech</span></span>
+          <p class="text-xs text-slate-400 leading-none mt-0.5">Hospital Dashboard</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 bg-green-50 border border-green-100 rounded-full px-3 py-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-accent inline-block animate-pulse"></span>
+          <span class="text-xs text-slate-500 font-medium">Hospital</span>
+        </div>
+        <button id="logoutButton" class="text-xs bg-red-50 border border-red-100 rounded-full px-3 py-1.5 font-semibold text-red-500 hover:bg-red-100 transition">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- TOAST -->
+    <div id="toast" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-accent text-white px-5 py-2 rounded-full text-sm font-semibold shadow-lg whitespace-nowrap"></div>
+
+    <!-- MAIN CONTENT (scrollable, padded for bottom nav) -->
+    <main class="flex-1 overflow-y-auto pb-24">
+
+      <!-- ════ STATS STRIP ════ -->
+      <div class="px-4 pt-4 pb-2 grid grid-cols-2 gap-3">
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Doctors</p>
+          <p id="doctorCount" class="text-2xl font-black text-slate-900 mt-1">0</p>
+          <span class="text-xs font-semibold text-accent">Active</span>
+        </div>
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">ICU Beds</p>
+          <p id="icuCount" class="text-2xl font-black text-slate-900 mt-1">0</p>
+          <span class="text-xs font-semibold text-primary">Available</span>
+        </div>
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Ventilators</p>
+          <p id="ventilatorCount" class="text-2xl font-black text-slate-900 mt-1">0</p>
+          <span class="text-xs font-semibold text-slate-400">Life support</span>
+        </div>
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Ambulances</p>
+          <p id="ambulanceCount" class="text-2xl font-black text-slate-900 mt-1">0</p>
+          <span class="text-xs font-semibold text-slate-400">Dispatch</span>
+        </div>
+      </div>
+
+      <!-- ════ TAB 1: DOCTORS ════ -->
+      <section id="tab-doctors" class="h-tab-page p-4 space-y-4">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Doctor Management</p>
+
+        <!-- Add doctor form -->
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm space-y-3">
+          <p class="font-bold text-slate-800 text-sm">Add / update doctor</p>
+          <div class="space-y-2">
+            <input id="doctorName" type="text" placeholder="Dr. Ritu Patel"
+              class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+            <select id="doctorStatus"
+              class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-700 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm">
+              <option value="available">✅ Available</option>
+              <option value="busy">🔴 Busy</option>
+            </select>
+            <button id="addDoctorButton"
+              class="w-full rounded-2xl py-3 text-sm font-bold text-white active:scale-95 transition"
+              style="background:linear-gradient(135deg,#0ea5e9,#10b981);">Add Doctor</button>
+          </div>
+        </div>
+
+        <!-- Doctor list -->
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <p class="font-bold text-slate-800 text-sm">Current Roster</p>
+            <span id="doctorStatusSummary" class="text-xs text-primary font-semibold">0 available / 0 busy</span>
+          </div>
+          <div id="doctorList" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- ════ TAB 2: EQUIPMENT ════ -->
+      <section id="tab-equipment" class="h-tab-page hidden p-4 space-y-4">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Equipment Management</p>
+
+        <!-- Core resources -->
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm space-y-3">
+          <p class="font-bold text-slate-800 text-sm">Critical Resources</p>
+          <div class="space-y-2">
+            <div>
+              <label class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">ICU Beds</label>
+              <input id="inputIcuBeds" type="number" min="0"
+                class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-800 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Ventilators</label>
+              <input id="inputVentilators" type="number" min="0"
+                class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-800 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Ambulances</label>
+              <input id="inputAmbulances" type="number" min="0"
+                class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-800 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+            </div>
+            <button id="saveEquipmentButton"
+              class="w-full rounded-2xl py-3 text-sm font-bold text-white active:scale-95 transition"
+              style="background:linear-gradient(135deg,#0ea5e9,#10b981);">Save Inventory</button>
+          </div>
+        </div>
+
+        <!-- Custom equipment -->
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <p class="font-bold text-slate-800 text-sm">Custom Supplies</p>
+            <button id="addCustomItemButton"
+              class="text-xs bg-blue-50 text-primary border border-blue-200 rounded-full px-3 py-1.5 font-bold active:scale-95 transition">+ Add Item</button>
+          </div>
+          <div id="customEquipmentList" class="space-y-3"></div>
+          <div id="newCustomEquipmentForm" class="mt-3 space-y-2 hidden">
+            <input id="customEquipmentName" type="text" placeholder="Equipment name"
+              class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-800 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+            <input id="customEquipmentCount" type="number" min="0" placeholder="Count"
+              class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-800 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+            <button id="saveCustomEquipmentButton"
+              class="w-full rounded-2xl py-3 text-sm font-bold text-white active:scale-95 transition"
+              style="background:linear-gradient(135deg,#0ea5e9,#10b981);">Save Item</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ TAB 3: ALERTS ════ -->
+      <section id="tab-alerts" class="h-tab-page hidden p-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Patient Arrival Alerts</p>
+          <div class="flex items-center gap-2">
+            <button id="newAlertButton"
+              class="text-xs rounded-full px-3 py-1.5 font-bold text-white active:scale-95 transition"
+              style="background:linear-gradient(135deg,#0ea5e9,#10b981);">+ New</button>
+            <button id="markAllSeenButton"
+              class="text-xs bg-slate-100 text-slate-500 border border-slate-200 rounded-full px-3 py-1.5 font-bold active:scale-95 transition">Mark All Seen</button>
+          </div>
+        </div>
+        <div id="alertList" class="space-y-3"></div>
+      </section>
+
+      <!-- ════ TAB 4: REPORTS ════ -->
+      <section id="tab-reports" class="h-tab-page hidden p-4 space-y-4">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Patient Report Lookup</p>
+
+        <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm space-y-3">
+          <p class="font-bold text-slate-800 text-sm">Fetch by Patient ID</p>
+          <input id="patientIdInput" type="text" placeholder="PT-2048"
+            class="w-full bg-white border border-blue-200 rounded-2xl px-4 py-3 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 transition shadow-sm" />
+          <button id="fetchReportButton"
+            class="w-full rounded-2xl py-3 text-sm font-bold text-white active:scale-95 transition"
+            style="background:linear-gradient(135deg,#0ea5e9,#10b981);">Fetch Report</button>
+        </div>
+
+        <div id="reportCard" class="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm hidden">
+          <p id="reportPatientName" class="font-black text-slate-900 text-base"></p>
+          <p id="reportPatientDetails" class="text-xs text-slate-400 mt-1 mb-4"></p>
+          <div class="space-y-3">
+            <div class="report-field bg-slate-50 border border-slate-100 rounded-2xl p-3">
+              <span>Medical history</span><p id="reportHistory"></p>
+            </div>
+            <div class="report-field bg-slate-50 border border-slate-100 rounded-2xl p-3">
+              <span>Previous diagnosis</span><p id="reportDiagnosis"></p>
+            </div>
+            <div class="report-field bg-slate-50 border border-slate-100 rounded-2xl p-3">
+              <span>Allergies</span><p id="reportAllergies"></p>
+            </div>
+          </div>
+        </div>
+
+        <div id="reportEmptyState" class="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm text-center text-slate-400">
+          <p class="text-2xl mb-2">📋</p>
+          <p class="text-sm font-semibold">Enter a Patient ID above to fetch the latest report.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- BOTTOM NAVIGATION (identical structure to Patient) -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-blue-100 flex z-20 safe-bottom shadow-lg">
+      <button class="nav-tab active" id="h-nav-doctors" data-htab="doctors">
+        <span class="nav-icon">👨‍⚕️</span><span class="nav-label">Doctors</span>
+      </button>
+      <button class="nav-tab" id="h-nav-equipment" data-htab="equipment">
+        <span class="nav-icon">🛏️</span><span class="nav-label">Equipment</span>
+      </button>
+      <button class="nav-tab" id="h-nav-alerts" data-htab="alerts">
+        <span class="nav-icon">🚨</span><span class="nav-label">Alerts</span>
+      </button>
+      <button class="nav-tab" id="h-nav-reports" data-htab="reports">
+        <span class="nav-icon">📋</span><span class="nav-label">Reports</span>
+      </button>
+    </nav>
+  </div>
+
+  <script type="module" src="hospital.js"></script>
+  <script>
+    // Tab switching for Hospital interface (mirrors Patient tab logic)
+    document.querySelectorAll('[data-htab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.htab;
+        document.querySelectorAll('.h-tab-page').forEach(s => s.classList.add('hidden'));
+        document.getElementById('tab-' + target).classList.remove('hidden');
+        document.querySelectorAll('[data-htab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

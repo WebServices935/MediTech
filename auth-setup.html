@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><title>Setup Auth</title></head>
+<body>
+  <h1>Setting up Hospital Accounts...</h1>
+  <ul id="log"></ul>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB97wZhoRa7LDk37uTPboWnjlX2XuW5tHU",
+      authDomain: "meditech-bb963.firebaseapp.com",
+      databaseURL: "https://meditech-bb963-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "meditech-bb963",
+      storageBucket: "meditech-bb963.firebasestorage.app",
+      messagingSenderId: "416589177581",
+      appId: "1:416589177581:web:7a1e1610cb279a116462e4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const hospitals = [
+      { email: "guru@gmail.com", password: "123456" },
+      { email: "bhagirathi@gmail.com", password: "123456" },
+      { email: "basaveshwar@gmail.com", password: "123456" },
+      { email: "safa@gmail.com", password: "123456" },
+      { email: "vishwa@gmail.com", password: "123456" },
+      { email: "prayavi@gmail.com", password: "123456" },
+      { email: "bmc@gmail.com", password: "123456" },
+      { email: "apex@gmail.com", password: "123456" },
+      { email: "krishnamurthy@gmail.com", password: "123456" }
+    ];
+
+    async function run() {
+      const log = document.getElementById("log");
+      for (const h of hospitals) {
+        try {
+          await createUserWithEmailAndPassword(auth, h.email, h.password);
+          await signOut(auth);
+          log.innerHTML += `<li>Created: ${h.email}</li>`;
+        } catch (e) {
+          log.innerHTML += `<li>Error ${h.email}: ${e.message}</li>`;
+        }
+      }
+      log.innerHTML += `<li id="done">All done!</li>`;
+    }
+    run();
+  </script>
+</body>
+</html>

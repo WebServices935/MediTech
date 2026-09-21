@@ -1,5 +1,9 @@
-// app.js — MediTech | Light Theme + Emergency Type Tags
-import { initFirebase, fetchHospitalsFromFirestore, seedFirestoreIfEmpty } from "./firebase.js";
+// app.js — MediTech | Light Theme + Emergency Type Tags + My Report Tab
+import { 
+  initFirebase, fetchHospitalsFromFirestore, seedFirestoreIfEmpty,
+  savePatientProfileToDB, loadPatientProfileFromDB,
+  uploadPatientReport, loadPatientReportsFromDB, deletePatientReportFromDB
+} from "./firebase.js";
 
 // ═══════════════════════════════════════════════
 //  HOSPITAL DATA
@@ -290,24 +294,151 @@ function renderSearch(query = "") {
   renderCards("searchResults", results, { limit: 6, bestIdx: 0 });
 }
 
-function renderBestHospital() {
-  const sorted = [...hospitals].sort((a, b) => score(b) - score(a));
-  renderCards("bestHospitalCard", sorted.slice(0, 1), { bestIdx: 0 });
+// ═══════════════════════════════════════════════
+//  MY REPORT TAB — Patient Profile & File Uploads
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+//  MY REPORT TAB — Patient Profile & File Uploads
+// ═══════════════════════════════════════════════
+const PROFILE_KEY = "meditechPatientProfile";
+
+function generateProfileId() {
+  const stored = localStorage.getItem("meditechProfileId");
+  if (stored) return stored;
+  const id = "MT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  localStorage.setItem("meditechProfileId", id);
+  return id;
 }
 
-function renderEmergencyFilter(query) {
-  currentQuery = query;
-  const results = filterByQuery(query);
-  document.getElementById("emergencyResultsSection").classList.remove("hidden");
-  document.getElementById("emergencyResultLabel").textContent = titleCase(query) + " Hospitals";
-  renderCards("emergencyResults", results, { limit: 5, bestIdx: 0 });
-  document.getElementById("emergencyResultsSection").scrollIntoView({ behavior: "smooth" });
+let currentReports = [];
+
+async function loadPatientProfile() {
+  const id = generateProfileId();
+  const profile = await loadPatientProfileFromDB(id);
+  if (!profile) {
+    try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || null; } catch { return null; }
+  }
+  return profile;
 }
 
-window.clearEmergencyFilter = function () {
-  currentQuery = "";
-  document.getElementById("emergencyResultsSection").classList.add("hidden");
-};
+async function savePatientProfile(data) {
+  const id = generateProfileId();
+  await savePatientProfileToDB(id, data);
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(data));
+}
+
+async function fetchUploadedReports() {
+  const id = generateProfileId();
+  currentReports = await loadPatientReportsFromDB(id);
+  renderUploadedReports();
+}
+
+function renderProfileView(profile) {
+  const view = document.getElementById("profileView");
+  const form = document.getElementById("profileForm");
+  const editBtn = document.getElementById("editProfileBtn");
+  if (!profile) {
+    view.classList.add("hidden"); form.classList.remove("hidden");
+    editBtn.classList.add("hidden"); return;
+  }
+  document.getElementById("pName").value = profile.name || "";
+  document.getElementById("pAge").value = profile.age || "";
+  document.getElementById("pBlood").value = profile.blood || "";
+  document.getElementById("pGender").value = profile.gender || "";
+  document.getElementById("pPhone").value = profile.phone || "";
+  document.getElementById("pEmergency").value = profile.emergency || "";
+  document.getElementById("pAllergies").value = profile.allergies || "";
+  document.getElementById("pHistory").value = profile.history || "";
+
+  const fields = [
+    { icon: "👤", label: "Name", val: profile.name },
+    { icon: "🎂", label: "Age", val: profile.age ? profile.age + " yrs" : "" },
+    { icon: "🩸", label: "Blood Group", val: profile.blood },
+    { icon: "⚧", label: "Gender", val: profile.gender },
+    { icon: "📞", label: "Phone", val: profile.phone },
+    { icon: "🆘", label: "Emergency Contact", val: profile.emergency },
+    { icon: "⚠️", label: "Allergies", val: profile.allergies },
+    { icon: "📋", label: "Medical History", val: profile.history },
+  ].filter(f => f.val);
+
+  view.innerHTML = fields.map(f => `
+    <div class="flex items-start gap-2 bg-slate-50 rounded-xl px-3 py-2">
+      <span class="text-base mt-0.5">${f.icon}</span>
+      <div class="min-w-0">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">${f.label}</p>
+        <p class="text-sm text-slate-800 font-semibold mt-0.5 leading-snug">${f.val}</p>
+      </div>
+    </div>`).join("");
+
+  view.classList.remove("hidden");
+  form.classList.add("hidden");
+  editBtn.textContent = "Edit";
+  editBtn.classList.remove("hidden");
+}
+
+function renderUploadedReports() {
+  const list = currentReports;
+  const el = document.getElementById("uploadedReportsList");
+  const empty = document.getElementById("reportsEmptyState");
+  const badge = document.getElementById("reportCountBadge");
+  badge.textContent = list.length + " file" + (list.length !== 1 ? "s" : "");
+  if (!list.length) { el.innerHTML = ""; empty.classList.remove("hidden"); return; }
+  empty.classList.add("hidden");
+  el.innerHTML = list.map((r, i) => {
+    const isImg = r.type && r.type.startsWith("image");
+    return `
+      <div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${isImg ? "bg-blue-50" : "bg-red-50"}">
+          ${isImg ? "🖼️" : "📄"}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-slate-800 truncate"><a href="${r.url}" target="_blank" class="hover:underline">${r.note || r.name}</a></p>
+          <p class="text-xs text-slate-400 mt-0.5">${r.name} · ${r.dateLabel}</p>
+        </div>
+        <button class="report-delete-btn text-slate-300 hover:text-red-400 transition text-lg" data-idx="${i}">🗑️</button>
+      </div>`;
+  }).join("");
+}
+
+async function handleFileUpload(files) {
+  if (!files || !files.length) return;
+  const note = document.getElementById("reportNote").value.trim();
+  const id = generateProfileId();
+  
+  toast("Uploading reports...");
+  let processed = 0;
+  for (const file of Array.from(files)) {
+    if (file.size > 10 * 1024 * 1024) { toast("File too large: " + file.name); continue; }
+    try {
+      await uploadPatientReport(id, file, note);
+      processed++;
+    } catch(err) {
+      toast("Error uploading " + file.name);
+    }
+  }
+  if (processed > 0) {
+     toast("✅ " + processed + " report" + (processed > 1 ? "s" : "") + " uploaded!");
+     document.getElementById("reportNote").value = "";
+     document.getElementById("reportFileInput").value = "";
+     await fetchUploadedReports();
+  }
+}
+
+async function deleteReport(idx) {
+  const report = currentReports[idx];
+  if (!report) return;
+  const id = generateProfileId();
+  await deletePatientReportFromDB(id, report.key, report.storagePath);
+  await fetchUploadedReports();
+  toast("Report removed.");
+}
+
+async function renderReportTab() {
+  document.getElementById("patientProfileId").textContent = generateProfileId();
+  const profile = await loadPatientProfile();
+  renderProfileView(profile);
+  await fetchUploadedReports();
+}
 
 function renderNearby(sort = "distance") {
   let sorted = [...hospitals];
@@ -330,8 +461,8 @@ function switchTab(tab) {
   document.getElementById(`nav-${tab}`).classList.add("active");
   activeTab = tab;
   if (tab === "search") renderSearch(document.getElementById("searchInput").value);
-  if (tab === "emergency") { currentQuery = ""; renderBestHospital(); }
   if (tab === "nearby") renderNearby(nearbySortMode);
+  if (tab === "report") renderReportTab();
 }
 
 // ═══════════════════════════════════════════════
@@ -374,7 +505,7 @@ async function boot() {
       hospitals = fetched;
       dot.className = "w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-green-200"; dot.title = "Firebase connected";
     } else {
-      await seedFirestoreIfEmpty(FALLBACK_HOSPITALS); hospitals = FALLBACK_HOSPITALS;
+      seedFirestoreIfEmpty(FALLBACK_HOSPITALS); hospitals = FALLBACK_HOSPITALS;
     }
   } else {
     hospitals = FALLBACK_HOSPITALS;
@@ -391,23 +522,71 @@ async function boot() {
 //  EVENT LISTENERS
 // ═══════════════════════════════════════════════
 document.addEventListener("DOMContentLoaded", () => {
+  // ── Nav tabs ──
   document.querySelectorAll(".nav-tab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 
+  // ── Search ──
   const inp = document.getElementById("searchInput");
   let deb;
   inp.addEventListener("input", () => { clearTimeout(deb); deb = setTimeout(() => renderSearch(inp.value), 280); });
-
   document.querySelectorAll(".suggestion-chip").forEach(c => {
     c.addEventListener("click", () => { inp.value = c.dataset.query; renderSearch(c.dataset.query); });
   });
-  document.querySelectorAll(".emergency-action-btn").forEach(b => {
-    b.addEventListener("click", () => renderEmergencyFilter(b.dataset.query));
-  });
+
+  // ── Nearby sort chips ──
   document.querySelectorAll(".sort-chip").forEach(c => {
     c.addEventListener("click", () => {
       document.querySelectorAll(".sort-chip").forEach(x => x.classList.remove("active"));
       c.classList.add("active"); nearbySortMode = c.dataset.sort; renderNearby(nearbySortMode);
     });
   });
+
+  // ── My Report: Save Profile ──
+  document.getElementById("saveProfileBtn").addEventListener("click", async () => {
+    const profile = {
+      name:      document.getElementById("pName").value.trim(),
+      age:       document.getElementById("pAge").value.trim(),
+      blood:     document.getElementById("pBlood").value,
+      gender:    document.getElementById("pGender").value,
+      phone:     document.getElementById("pPhone").value.trim(),
+      emergency: document.getElementById("pEmergency").value.trim(),
+      allergies: document.getElementById("pAllergies").value.trim(),
+      history:   document.getElementById("pHistory").value.trim(),
+    };
+    if (!profile.name) { toast("Please enter your full name."); return; }
+    document.getElementById("saveProfileBtn").textContent = "Saving...";
+    await savePatientProfile(profile);
+    renderProfileView(profile);
+    document.getElementById("saveProfileBtn").textContent = "💾 Save Profile";
+    toast("✅ Profile saved successfully!");
+  });
+
+  // ── My Report: Edit toggle ──
+  document.getElementById("editProfileBtn").addEventListener("click", () => {
+    const form = document.getElementById("profileForm");
+    const view = document.getElementById("profileView");
+    const isHidden = form.classList.contains("hidden");
+    form.classList.toggle("hidden", !isHidden);
+    view.classList.toggle("hidden", isHidden);
+    document.getElementById("editProfileBtn").textContent = isHidden ? "Cancel" : "Edit";
+  });
+
+  // ── My Report: File upload ──
+  document.getElementById("reportFileInput").addEventListener("change", e => {
+    handleFileUpload(e.target.files);
+  });
+
+  // ── My Report: Delete report (event delegation) ──
+  document.getElementById("uploadedReportsList").addEventListener("click", e => {
+    const btn = e.target.closest(".report-delete-btn");
+    if (btn) deleteReport(Number(btn.dataset.idx));
+  });
+
+  // ── My Report: Copy profile ID ──
+  document.getElementById("copyProfileIdBtn").addEventListener("click", () => {
+    const id = document.getElementById("patientProfileId").textContent;
+    navigator.clipboard.writeText(id).then(() => toast("📋 Profile ID copied!")).catch(() => toast("Copy: " + id));
+  });
+
   boot();
 });

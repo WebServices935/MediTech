@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-scale: 1;
+  }
+
+  html.text-size-large {
+    font-size: 112.5%; /* 18px */
+  }
+
+  html.text-size-xlarge {
+    font-size: 125%; /* 20px */
+  }
+
+  /* High Contrast Mode Adjustments */
+  html.high-contrast {
+    filter: contrast(135%);
+  }
+
+  html.high-contrast button {
+    border-width: 2px !important;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}

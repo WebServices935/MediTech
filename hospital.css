@@ -1,0 +1,94 @@
+/* ============================================================
+   MEDITECH HOSPITAL – hospital.css  |  Mobile-first (matches Patient interface)
+   ============================================================ */
+
+/* ── FORM INPUTS (match patient search bar look) ── */
+.form-label { font-size: 0.82rem; color: #64748b; font-weight: 700; }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; padding: 0.4rem 0.85rem;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.badge-accent       { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.badge-primary      { background: #eff6ff; color: #0f172a; border: 1px solid #bfdbfe; }
+.badge-primary-light{ background: #f0f9ff; color: #0f1748; border: 1px solid #bae6fd; }
+
+/* ── BUTTONS ── */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 18px; background: #0ea5e9; color: #ffffff;
+  font-weight: 800; border: 1px solid transparent;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.btn-primary:hover  { background: #0369a1; transform: translateY(-1px); }
+.btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 14px; background: #f8fafc; color: #0f172a;
+  border: 1px solid #cbd5e1; font-weight: 700; padding: 6px 12px; font-size: 0.8rem;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.btn-secondary:hover { background: #eef2ff; transform: translateY(-1px); }
+
+/* ── DOCTOR CARD ── */
+.doctor-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 14px 16px;
+  flex-wrap: wrap;
+}
+.doctor-card .doctor-meta { min-width: 0; flex: 1; }
+.doctor-card strong { display: block; font-size: 0.95rem; color: #0f172a; }
+.doctor-status {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.4rem 0.85rem; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700;
+}
+.status-available { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.status-busy      { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* ── CUSTOM EQUIPMENT ROW ── */
+.custom-equipment-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 14px 16px;
+}
+.custom-equipment-row strong { display: block; font-size: 0.95rem; color: #0f172a; }
+.custom-equipment-row small  { color: #64748b; font-size: 0.78rem; }
+
+/* ── ALERT CARDS ── */
+.alert-card {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #e2e8f0; border-radius: 18px; padding: 16px;
+  box-shadow: 0 4px 16px rgba(14,165,233,0.07);
+}
+.alert-card.urgent {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fff1f2 0%, #fff7f7 100%);
+  animation: pulse-alert 1.8s ease-in-out infinite;
+}
+.alert-card strong { display: block; font-size: 0.95rem; color: #0f172a; }
+.alert-card p      { color: #475569; font-size: 0.85rem; }
+
+/* ── REPORT FIELD ── */
+.report-field { display: flex; flex-direction: column; gap: 6px; }
+.report-field span {
+  font-size: 0.68rem; color: #64748b;
+  text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700;
+}
+.report-field p { font-size: 0.9rem; color: #0f172a; line-height: 1.6; }
+
+/* ── TOAST (hospital) ── */
+.toast-notice {
+  position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
+  z-index: 50; background: #0369a1; color: #ffffff;
+  padding: 12px 20px; border-radius: 999px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  font-weight: 700; letter-spacing: 0.01em; white-space: nowrap;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes pulse-alert {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-2px); }
+}
